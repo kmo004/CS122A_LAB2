@@ -52,28 +52,63 @@ void masterTick(){
 	}
 }
 
+unsigned char leader = 0x00;
+unsigned char time1 = 0x00;
+
 int main(void) {
     /* Insert DDR and PORT initializations */
     DDRA = 0xFF; PORTA = 0x00;
     DDRD = 0xFF; PORTD = 0x00;
+    DDRB = 0x00; PORTB = 0xFF;
+    DDRC = 0xFF; PORTC = 0x00;
     
-    TimerSet(1000);
+    TimerSet(500);
     TimerOn();
     state = off;
 
 	initUSART(0);
+	initUSART(1);
     /* Insert your solution below */
     while (1) {
-	
+		
+		if(PINB == 0xFE){
+			PORTC = 0x01;
+			leader = 0x01;
+		}
+		else{
+			PORTC = 0x00;
+			leader = 0x00;
+		}
+		
+		if(leader == 0x01){
+			if(time1 == 0x01){
+				masterTick();
+				if(USART_IsSendReady(1)){
+					USART_Send(Light,1);
+				}
 			
-			masterTick();
-			if(USART_IsSendReady(0)){
-				USART_Send(Light,0);
+				if(USART_HasTransmitted(1)){
+					PORTA = Light;
+				}
+				time1 = 0x00;
+			}
+			else{
+				time1 = 0x01;
+			}
+		}
+		else{
+			
+			
+			if(USART_HasReceived(0)){
+				PORTA = USART_Receive(0);
+			}
+			else if(!USART_HasReceived(0)){
+				PORTA = USART_Receive(0); // gets stuck here if it doesnt recieve
 			}
 			
-			if(USART_HasTransmitted(0)){
-				PORTA = Light;
-			}
+			
+			
+		}
 			
 			
 			while (!TimerFlag){}
