@@ -1,7 +1,7 @@
 /*	Author: kmo004
  *  Partner(s) Name: Jason Mendoza
  *	Lab Section:
- *	Assignment: Lab # 2 Exercise #3
+ *	Assignment: Lab # 2 Exercise # 1 & 2
  *	Exercise Description: [optional - include for your own benefit]
  *
  *	I acknowledge all content contained herein, excluding template or example
@@ -17,7 +17,6 @@ unsigned char light;
 unsigned char ltime = 0;
 unsigned char stime = 0;
 unsigned char B0;
-unsigned char count;
 
 
 enum lightstates{on, off} lstate;
@@ -59,35 +58,31 @@ enum Reciever_states {Recieve, Transmit} states;
 void recieve(){
 	switch (states){
 		case Recieve:
-			if( count >= 6 ){
-				states = Transmit;
+			if(B0 == 0x00){
+				states = Recieve;
 			}
 			else{
-				if(USART_HasReceived(0)){
-					count = 0;
-				}
-				count++;	
-				states = Recieve;
-				}
-				
+				states = Transmit;
+			}
 			break;
 		case Transmit:
-				if(USART_HasReceived(0)){
-					temp = USART_Receive(0);
-					states = Recieve;
-					count = 0;
-				}
-					states = Transmit;
+			if(B0 == 0x00){
+				states = Recieve;
+			}
+			else{
+				states = Transmit;
+			}
 			break;
 	}
 	switch (states){
 		case Recieve:
 			if(USART_HasReceived(0)){
 				temp = USART_Receive(0);
-				USART_Flush(0);
+			}
+			else{
+				temp = USART_Receive(0);
 			}
 			PORTA = temp;
-			PORTC = 0x00;
 		break;
 		case Transmit:
 			mastertick();
@@ -95,8 +90,10 @@ void recieve(){
 				if(USART_IsSendReady(1)){
 					USART_Send(light,1);
 				}
+				if(USART_HasReceived(1)){
+					PORTA = light;
+				}
 				PORTA = light;
-				PORTC = 0x01;
 				stime = 0x00;
 			}
 			else{
@@ -126,15 +123,18 @@ int main(void)
 	states = Recieve;
 	lstate = off;
 	
-	count = 0;
-	
     while (1) 
     {
-		
-		
+		B0 = ~PINB & 0x01;
 		
 		recieve();
 		
+		if(B0 == 0x00){
+			PORTC = 0x00;
+		}
+		else if(B0 == 0x01){
+			PORTC = 0x01;
+		}
 		while(!TimerFlag){}
 		TimerFlag = 0;
 		
@@ -143,6 +143,4 @@ int main(void)
 		
     }
 }
-
-
 
